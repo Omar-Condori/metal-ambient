@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut, User, Menu, X, Home, UserPlus, LogIn, Shield, ChevronDown } from 'lucide-react';
-import logo from '../../assets/image/logo002.png'; // ✅ Logo
+import logo from '../../assets/image/logo-oficial.png'; // ✅ Logo
 
 const Navbar = () => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
@@ -19,7 +19,7 @@ const Navbar = () => {
           {/* ✅ Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <img src={logo} alt="Logo" className="h-10 w-auto" />
+              <img src={logo} alt="Logo" className="h-14 w-auto" />
             </Link>
           </div>
 

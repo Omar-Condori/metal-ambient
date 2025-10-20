@@ -1,19 +1,16 @@
+// src/main/java/com/chatarra/auth/entity/Oferta.java
 package com.chatarra.auth.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Entidad que representa una oferta de chatarra realizada por un vendedor.
- */
 @Entity
 @Table(name = "ofertas")
 @Data
@@ -26,66 +23,64 @@ public class Oferta {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Relación Many-to-One con Usuario (Vendedor)
-     * Un vendedor puede tener muchas ofertas
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) // ← EAGER para cargar el vendedor
     @JoinColumn(name = "vendedor_id", nullable = false)
+    @JsonManagedReference // ← EVITA loop infinito en JSON
     private Usuario vendedor;
 
-    @Column(name = "tipo_material", nullable = false, length = 100)
-    private String tipoMaterial; // Ej: "Hierro", "Aluminio", "Cobre", "Bronce"
+    @Column(nullable = false, length = 50)
+    private String tipoMaterial;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal cantidad; // Cantidad en kilogramos
+    private BigDecimal cantidad;
 
-    @Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
-    private BigDecimal precioUnitario; // Precio por kg
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal precioUnitario;
 
-    @Column(name = "precio_total", nullable = false, precision = 10, scale = 2)
-    private BigDecimal precioTotal; // cantidad * precioUnitario
+    @Column(precision = 10, scale = 2)
+    private BigDecimal precioTotal;
 
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
-    @Column(length = 200)
+    @Column(length = 255)
     private String ubicacion;
+
+    @Column(length = 500)
+    private String imagenUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EstadoOferta estado = EstadoOferta.PENDIENTE;
+    private EstadoOferta estado;
 
-    @Column(name = "imagen_url")
-    private String imagenUrl;
-
-    @CreationTimestamp
-    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
-    @UpdateTimestamp
-    @Column(name = "fecha_actualizacion")
-    private LocalDateTime fechaActualizacion;
-
-    /**
-     * Enum para los diferentes estados de una oferta
-     */
-    public enum EstadoOferta {
-        PENDIENTE,    // Esperando aprobación del admin
-        APROBADA,     // Aprobada por el admin, visible públicamente
-        RECHAZADA,    // Rechazada por el admin
-        VENDIDA,      // Ya fue vendida/completada
-        CANCELADA     // Cancelada por el vendedor
+    @PrePersist
+    protected void onCreate() {
+        fechaCreacion = LocalDateTime.now();
+        if (estado == null) {
+            estado = EstadoOferta.PENDIENTE;
+        }
+        // Calcular precio total
+        if (cantidad != null && precioUnitario != null) {
+            precioTotal = cantidad.multiply(precioUnitario);
+        }
     }
 
-    /**
-     * Método auxiliar para calcular el precio total automáticamente
-     */
-    @PrePersist
     @PreUpdate
-    public void calcularPrecioTotal() {
+    protected void onUpdate() {
+        // Recalcular precio total
         if (cantidad != null && precioUnitario != null) {
-            this.precioTotal = cantidad.multiply(precioUnitario);
+            precioTotal = cantidad.multiply(precioUnitario);
         }
+    }
+
+    public enum EstadoOferta {
+        PENDIENTE,
+        APROBADA,
+        RECHAZADA,
+        VENDIDA,
+        CANCELADA
     }
 }

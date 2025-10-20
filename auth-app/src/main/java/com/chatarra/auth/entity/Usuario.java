@@ -1,5 +1,8 @@
+// src/main/java/com/chatarra/auth/entity/Usuario.java
 package com.chatarra.auth.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,10 +19,10 @@ import java.util.List;
 @Entity
 @Table(name = "usuarios")
 @Data
-@Builder // Se añade Builder para compatibilidad con el servicio
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Usuario implements UserDetails { // <-- ¡IMPORTANTE! Se implementa UserDetails
+public class Usuario implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,6 +35,7 @@ public class Usuario implements UserDetails { // <-- ¡IMPORTANTE! Se implementa
     private String email;
 
     @Column(nullable = false)
+    @JsonIgnore // ← NO enviar password en JSON
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -44,11 +48,19 @@ public class Usuario implements UserDetails { // <-- ¡IMPORTANTE! Se implementa
     @Column(nullable = false)
     private LocalDateTime fechaRegistro;
 
+    // ← EVITAR loop infinito con ofertas
+    @OneToMany(mappedBy = "vendedor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonBackReference
+    private List<Oferta> ofertas;
+
     @PrePersist
     protected void onCreate() {
         fechaRegistro = LocalDateTime.now();
         if (rol == null) {
             rol = Rol.VENDEDOR;
+        }
+        if (activo == null) {
+            activo = true;
         }
     }
 
@@ -57,39 +69,41 @@ public class Usuario implements UserDetails { // <-- ¡IMPORTANTE! Se implementa
         ADMIN
     }
 
-    // --- MÉTODOS REQUERIDOS POR SPRING SECURITY (UserDetails) ---
+    // --- MÉTODOS DE SPRING SECURITY (UserDetails) ---
 
     @Override
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // La autoridad debe empezar con "ROLE_" para que Spring Security la reconozca
         return List.of(new SimpleGrantedAuthority("ROLE_" + rol.name()));
     }
 
     @Override
+    @JsonIgnore
     public String getUsername() {
-        // Spring Security usará el email como "username" para la autenticación
         return this.email;
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonExpired() {
-        return true; // La cuenta nunca expira
+        return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonLocked() {
-        return true; // La cuenta nunca se bloquea
+        return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isCredentialsNonExpired() {
-        return true; // Las credenciales nunca expiran
+        return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isEnabled() {
-        // La cuenta está habilitada si el campo 'activo' es true
         return this.activo;
     }
 }
-

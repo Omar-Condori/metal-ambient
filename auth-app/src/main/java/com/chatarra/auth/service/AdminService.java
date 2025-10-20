@@ -19,31 +19,28 @@ public class AdminService {
 
     private final UsuarioRepository usuarioRepository;
 
-    /**
-     * Obtener todos los usuarios
-     */
     @Transactional(readOnly = true)
     public List<UserDTO> getAllUsers() {
-        return usuarioRepository.findAll().stream()
+        log.info("📋 Obteniendo todos los usuarios");
+        List<UserDTO> users = usuarioRepository.findAll().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        log.info("✅ Se encontraron {} usuarios", users.size());
+        return users;
     }
 
-    /**
-     * Obtener un usuario por ID
-     */
     @Transactional(readOnly = true)
     public UserDTO getUserById(Long id) {
+        log.info("🔍 Obteniendo usuario con ID: {}", id);
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
         return convertToDTO(usuario);
     }
 
-    /**
-     * Actualizar el rol de un usuario
-     */
     @Transactional
     public UserDTO updateUserRole(Long userId, String newRole) {
+        log.info("👤 Actualizando rol del usuario {} a {}", userId, newRole);
+
         Usuario usuario = usuarioRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + userId));
 
@@ -51,30 +48,26 @@ public class AdminService {
         usuario.setRol(rol);
 
         Usuario usuarioActualizado = usuarioRepository.save(usuario);
-        log.info("Rol actualizado para usuario {}: {}", usuario.getEmail(), newRole);
+        log.info("✅ Rol actualizado: {} -> {}", usuario.getEmail(), newRole);
 
         return convertToDTO(usuarioActualizado);
     }
 
-    /**
-     * Activar/Desactivar usuario
-     */
     @Transactional
     public UserDTO toggleUserStatus(Long userId, Boolean activo) {
+        log.info("🔄 Cambiando estado del usuario {} a {}", userId, activo);
+
         Usuario usuario = usuarioRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + userId));
 
         usuario.setActivo(activo);
         Usuario usuarioActualizado = usuarioRepository.save(usuario);
 
-        log.info("Estado actualizado para usuario {}: {}", usuario.getEmail(), activo ? "Activo" : "Inactivo");
+        log.info("✅ Estado actualizado: {} -> {}", usuario.getEmail(), activo ? "Activo" : "Inactivo");
 
         return convertToDTO(usuarioActualizado);
     }
 
-    /**
-     * Convertir entidad Usuario a DTO
-     */
     private UserDTO convertToDTO(Usuario usuario) {
         return UserDTO.builder()
                 .id(usuario.getId())
